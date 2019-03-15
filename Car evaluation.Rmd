@@ -1,0 +1,292 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+ ---
+title: "Car Evaluation data"
+output:
+  html_document:
+      previewLinks: TRUE      
+      theme: cosmo  
+      toc: true 
+      toc_float: true
+      toc_depth: 3  
+      fontsize: 16pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Loading the packages
+
+```{r}
+library(readr)
+library(readxl)
+library(ggplot2)
+library(vcd)
+library(vcdExtra)
+library(plyr)
+library(dplyr)
+library(ca)
+```
+
+## Loading the car evaluation dataset
+
+```{r}
+#USE data set "car.data.xlsx" from the file
+car_data <- read_excel("C:/Users/Tanmay/Desktop/HBU/545/Project/car.data.xlsx")
+car_data 
+summary(car_data)
+str(car_data)
+```
+
+
+## Coverting variables to factor
+
+```{r}
+car_data$Price_Buying = factor(car_data$Price_Buying, levels=c("low", "med", "high", "vhigh"), ordered=TRUE)
+car_data$Safety = factor(car_data$Safety,levels = c("low", "med", "high"))
+car_data$Comfort_Persons = factor(car_data$Comfort_Persons,levels = c("2","4","more"))
+car_data$ComfortLub_Boot = factor(car_data$ComfortLub_Boot, levels = c("small","med","big"))
+car_data$Price_Maint = factor(car_data$Price_Maint, levels = c("vhigh","high","med","low"), ordered = TRUE)
+car_data$Comfort_Doors = factor(car_data$Comfort_Doors, levels = c("2","3","4","5more"))
+car_data$Class_Values = factor(car_data$Class_Values, levels = c("unacc","acc","good","vgood"))
+car_data$Safety = factor(car_data$Safety,levels = c("low", "med", "high"))
+```
+
+##Exploratory analysis##
+
+```{r}
+ggplot(data=car_data, aes(x=car_data$Safety, fill=car_data$Class_Values)) +geom_bar () +theme() + xlab("Safety Level") + ylab("Count") + ggtitle("Safety level versus class values") + labs(fill = "Class values")
+ggplot(data=car_data, aes(x=car_data$Price_Buying, fill=car_data$Class_Values)) + geom_bar () +theme() + xlab("Price maintenance Level") + ylab("Count") + ggtitle("Price maintenance level versus class values") + labs(fill = "Class values")
+ggplot(data=car_data, aes(x=car_data$Safety, fill=car_data$Price_Buying)) +geom_bar () +theme() + xlab("Safety Level") + ylab("Count") + ggtitle("Safety level versus price buying") + labs(fill = "Price buying")
+ggplot(data=car_data, aes(x=car_data$ComfortLub_Boot, fill=car_data$Class_Values)) +geom_bar () +theme() + xlab("Lub boot level") + ylab("Count") + ggtitle("Lub boot level versus class values") + labs(fill = "Class values")
+ggplot(data=car_data, aes(x=car_data$Comfort_Doors, fill=car_data$Class_Values)) +geom_bar () +theme() + xlab("Comfort door level") + ylab("Count") + ggtitle("Comfort door level versus class values") + labs(fill = "Class values")
+ggplot(data=car_data, aes(x=car_data$Comfort_Persons, fill=car_data$Class_Values)) +geom_bar () +theme() 
+car_data_people=ggplot(data=car_data, aes(x=car_data$Comfort_Persons, fill=car_data$Class_Values)) + geom_bar()
+car_data_people+ theme()+ggtitle("Comfort persons versus class values") + labs(fill="Class values")  + xlab("Comfort persons level") + ylab("Class values")
+ggplot(data=car_data, aes(x=car_data$Safety, fill=car_data$Class_Values)) +geom_bar () +theme() + xlab("Safety Level") + ylab("Count") + ggtitle("Safety level versus class values") + labs(fill = "Class values")
+```
+
+## Conclusion : The most important factors are capacity and safety in car evaluation.
+
+## Modeling and Techniques: The table is formed with the help of with function. This combines all the variables in a table.
+
+```{r}
+t <- with(car_data,(table(car_data$Safety,car_data$Class_Values,car_data$Price_Buying, 
+                          car_data$Price_Maint,car_data$Comfort_Doors,car_data$ComfortLub_Boot,car_data$Comfort_Persons)))
+ftable(t)
+summary(t)
+plot(ftable(t))
+```
+
+## Adding margins in the car data variables to plot bar plot.
+
+```{r}
+ftable(addmargins(t, FUN = sum))
+addmargins(t)
+View(car_data)
+car_buying_price <- addmargins(margin.table(t,3))
+car_buying_price
+car_buying_price <- table(car_buying_price)
+car_class_values <- addmargins(margin.table(t,2))
+car_class_values
+car_class_values <- table(car_class_values)
+car_maint_price <- addmargins(margin.table(t,4))
+car_maint_price
+car_maint_price <- table(car_maint_price)
+car_door_confortdoors <- addmargins(margin.table(t,5))
+car_door_confortdoors
+car_door_confort <- table(car_door_confortdoors)
+car_data_persons <- addmargins(margin.table(t,7))
+car_data_persons
+car_data_lubboot <- addmargins(margin.table(t,6))
+car_data_lubboot
+car_data_safety <- addmargins(margin.table(t,1))
+car_data_safety
+```
+
+# Using Ord plot, find the type of distribution for this data using the f-table created above
+```{r}
+library(plyr)
+library(dplyr)
+
+
+carsafety <- as.data.frame(car_data_safety, stringsAsFactors = FALSE)
+colnames(carsafety) <- c("Safety_level","Safety_Freq")
+View(carsafety)
+carsafety <- carsafety[-4,]
+carsafety$Safety_level <- revalue(carsafety$Safety_level, c("high" = 3, "med"=2, "low"=1))
+carsafety$Safety_level <- as.numeric(carsafety$Safety_level)
+# Ord_plot(carsafety)
+#### Error in valid.viewport(x, y, width, height, just, gp, clip, xscale, yscale, : invalid 'xscale' in 
+#### viewport
+###### We get the above ERROR when we try to run Ord_plot which is due to the same frequency values from this data.                        
+                        
+carpersons <- as.data.frame(car_data_persons, stringsAsFactors = FALSE)
+colnames(carpersons) <- c("Persons_level","Persons_Freq")
+View(carpersons)
+carpersons <- carpersons[-4,]
+carpersons$Persons_level <- revalue(carpersons$Persons_level, c("more" = 3, "4" = 2, "2" = 1))
+carpersons$Persons_level <- as.numeric(carpersons$Persons_level)
+# Ord_plot(carpersons)
+#### Error in valid.viewport(x, y, width, height, just, gp, clip, xscale, yscale, : invalid 'xscale' in 
+#### viewport
+
+###### We get the above ERROR when we try to run Ord_plot which is due to the same frequency values from this data.
+
+
+
+```
+
+## Sieve diagram - plot
+
+```{r}
+sieve(~ Price_Buying + Price_Maint + Class_Values, data = car_data, 
+      shade = TRUE, labeling = labeling_values, rot_labels = c(0,0,90), gp_text = gpar(frontface = 2), 
+      split_vertical = TRUE)
+
+sieve(~ Safety + Comfort_Persons + Class_Values, data = car_data, 
+      shade = TRUE, labeling = labeling_values, rot_labels = c(0,0,90), gp_text = gpar(frontface = 2), 
+      split_vertical = TRUE)
+```
+
+## Converting the character data type in the car_data to numeric 
+
+```{r}
+car_data1 <- car_data
+car_data1$Price_Buying <- revalue(car_data$Price_Buying, c("vhigh" = 4, "high" = 3, "med"=2, "low"=1))
+car_data1$Price_Maint <- revalue(car_data$Price_Maint, c("vhigh" = 4, "high" = 3, "med"=2, "low"=1))
+car_data1$ComfortLub_Boot <- revalue(car_data$ComfortLub_Boot, c("big" = 3, "med"=2, "small"=1))
+car_data1$Comfort_Doors <- revalue(car_data$Comfort_Doors, c("5more" = 5))
+car_data1$Comfort_Persons <- revalue(car_data$Comfort_Persons, c("more" = 5))
+car_data1$Safety <- revalue(car_data$Safety, c("high" = 3, "med"=2, "low"=1))
+car_data1$Class_Values <- revalue(car_data$Class_Values, c("unacc" = 4, "acc" = 3, "vgood"=2, "good"=1))
+        
+
+car_data1$Price_Buying = as.numeric(car_data1$Price_Buying)
+car_data1$Price_Maint = as.numeric(car_data1$Price_Maint)
+car_data1$ComfortLub_Boot = as.numeric(car_data1$ComfortLub_Boot)
+car_data1$Comfort_Doors = as.numeric(car_data1$Comfort_Doors)
+car_data1$Comfort_Persons = as.numeric(car_data1$Comfort_Persons)
+car_data1$Safety = as.numeric(car_data1$Safety)
+car_data1$Class_Values = as.numeric(car_data1$Class_Values)
+str(car_data1)
+```
+
+
+##Buying price and maintenance price Poisson Plot for Good Fit.
+
+```{r}
+df_01 <- data.frame(car_data1$Price_Buying, car_data1$Price_Maint)
+poimodel_01 <- goodfit(df_01, type = "poisson")
+plot(poimodel_01, xlab = "Count", main = "Poisson model for Buying_Price & Maint_Price")
+```
+
+Conclusion: In both these cases, Buying and Maintaining; there are more responses for 'Medium' to 'High', which suggests that;Cars that require medium to high maintenance are preferred by the users.
+
+## Safety and Class_Values Poisson Plot for Good Fit.
+
+```{r}
+df_02 <- data.frame(car_data1$Safety, car_data1$Class_Values)
+poimodel_02 <- goodfit(df_02, type = "poisson")
+summary(poimodel_02)
+plot(poimodel_02, xlab = "Count", main = "Poisson Model for Safety & Class")
+```
+## Fitting data for NBinomial distribution
+```{r} 
+df_02 <- data.frame(car_data1$Safety, car_data1$Class_Values)
+binomodel_02 <- goodfit(df_02, type = "nbinomial")
+summary(binomodel_02)
+plot(binomodel_02, xlab = "Count", main = "NBinomial Model for Safety & Class")
+```
+### Conclusion: In this case, for a car to be in the CLASS 'Acceptable' or higher, it must be "Medium to  high" in terms of SAFETY. Also, we can see that the data is good fit for Poission as well as NBinomial as
+confirmed from the similar values of Likelihood ratio as well.
+
+
+
+## Comfort_Doors and Class_Values Poisson Plot for Good Fit.
+
+```{r}
+df_03 <- data.frame(car_data1$Comfort_Doors, car_data1$Class_Values)
+poimodel_03 <- goodfit(df_03, type = "poisson")
+summary(poimodel_03)
+plot(poimodel_03, xlab = "Count", main = "Poisson Model for Comfort_Doors & Class_values")
+```
+
+
+## Comfort_Persons and Class_Values Poisson Plot for Good Fit.
+
+```{r}
+df_04 <- data.frame(car_data1$Comfort_Persons, car_data1$Class_Values)
+poimodel_04 <- goodfit(df_04, type = "poisson")
+summary(poimodel_04)
+plot(poimodel_04, xlab = "Count", main = "Poisson Model for Comfort_persons & Class Values")
+```
+```{r}
+binomodel_03 <- goodfit(df_03, type = "binomial")
+summary(binomodel_03)
+plot(binomodel_03, xlab = "Count", main = "binomial Model for Comfort_Persons & Class_values")
+```
+## Comparing the Poisson distribution to Binomial distribution, it seems like the data is better fit for the Poisson distribution as confirmed from the higher Likelihood ratio value.
+
+
+## Comfort_Doors and Class_Values Poisson Plot for Good Fit.
+```{r}
+df_05 <- data.frame(car_data1$Comfort_Persons, car_data1$Comfort_Doors)
+poimodel_05 <- goodfit(df_05, type = "poisson")
+summary(poimodel_05)
+plot(poimodel_05, xlab = "Count", main = "Poisson Model for Comfort_Doors & Persons")
+```
+
+## Correspondence analysis
+```{r}
+car_ca <- xtabs(car_data1$Price_Buying~car_data1$Class_Values+car_data1$Safety, data = car_data1)
+car_ca <- ca(car_ca)
+car_ca
+summary(car_ca)
+plot(car_ca)
+car_ca1 <- xtabs(car_data1$Price_Buying~car_data1$Price_Maint+car_data1$Comfort_Doors, data = car_data1)
+car_ca1 <- ca(car_ca1)
+car_ca1
+plot(car_ca1)
+```
+
+## Logistic Regression
+
+```{r}
+car_regression_model1 <- glm(car_data1$Price_Buying ~ car_data1$Class_Values + car_data1$Price_Maint + car_data1$Comfort_Doors + car_data1$Comfort_Doors + car_data1$Comfort_Persons + car_data1$ComfortLub_Boot + car_data1$Safety, data=car_data1, family =  poisson)
+summary(car_regression_model1)
+plot(car_regression_model1)
+
+car_regression_model2 <- glm(car_data1$Price_Maint ~ car_data1$Class_Values + car_data1$Comfort_Doors + car_data1$Comfort_Doors + car_data1$Comfort_Persons + car_data1$ComfortLub_Boot + car_data1$Safety, data=car_data1, family =  poisson)
+summary(car_regression_model2)
+plot(car_regression_model2) 
+```
+
+## CHI-SQUARE Test
+```{r}
+model1 <- lm(car_data1$Price_Maint ~ car_data1$Class_Values, data = car_data1)
+summary(model1)$coef
+
+model2 <- lm(car_data1$Price_Buying ~ car_data1$Class_Values, data = car_data1)
+summary(model2)$coef
+
+model3 <- lm(car_data1$Safety ~ car_data1$Class_Values, data = car_data1)
+summary(model3)$coef
+
+model4 <- lm(car_data1$Comfort_Persons ~ car_data1$Class_Values, data = car_data1)
+summary(model4)$coef
+```
+
+
+## References:
+
+1. Visualizing Categorical Data [R package vcd version 1.4-4]. (n.d.). Retrieved from https://cran.r-project.org/web/packages/vcd/index.html
+2. Dynamic Documents for R [R package rmarkdown version 1.10]. (n.d.). Retrieved from https://cran.r-project.org/web/packages/rmarkdown/index.html
+3. Friendly, M., & Meyer, D. (2016). Discrete data analysis with R : visualization and modeling techniques for categorical and count data. CRC Press. Retrieved from https://www.crcpress.com/Discrete-Data-Analysis-with-R-Visualization-and-Modeling-Techniques-for/Friendly-Meyer/p/book/9781498725835
+4. Bohane, M. & Zupan, B. (1997). 'Car Evaluation Data Set'. Retrieved from https://archive.ics.uci.edu/ml/datasets/Car+Evaluation/. 
+
